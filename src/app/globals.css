@@ -1,0 +1,97 @@
+@import "tailwindcss";
+@import "maplibre-gl/dist/maplibre-gl.css";
+
+@layer base {
+  :root {
+    --background: #f8fafc;
+    --foreground: #0f172a;
+    
+    /* Institutional Government Palette */
+    --gov-navy-950: #07172a;
+    --gov-navy-900: #0a1c30;
+    --gov-navy-800: #112a4a;
+    --gov-navy-700: #173860;
+    --gov-navy-600: #204b7d;
+    --gov-navy-200: #c5d7ed;
+    --gov-navy-100: #e5eef8;
+    --gov-navy-50: #f0f5fa;
+    
+    /* Saffron Accent */
+    --saffron-700: #933904;
+    --saffron-600: #b44a08;
+    --saffron-500: #d35e0e;
+    --saffron-400: #ea7c2e;
+    --saffron-200: #fed7aa;
+    --saffron-100: #fef2e8;
+    --saffron-50: #fff9f4;
+    
+    /* Supporting Ecological & GIS Colors */
+    --gov-forest: #166534;
+    --gov-forest-light: #22c55e;
+    --gov-forest-bg: #ecfdf5;
+    
+    --gov-teal: #0e7490;
+    --gov-teal-light: #06b6d4;
+    --gov-teal-bg: #f0fdfa;
+
+    --card: #ffffff;
+    --card-foreground: #0f172a;
+    --border: #e2e8f0;
+    --input: #e2e8f0;
+    --ring: #173860;
+  }
+
+  /* High contrast mode toggle support */
+  .high-contrast {
+    --background: #ffffff;
+    --foreground: #000000;
+    --border: #000000;
+    --gov-navy-900: #000000;
+    --gov-navy-800: #001020;
+    --gov-navy-700: #002244;
+  }
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: -0.011em;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom crisp government-grade scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Subtle data grid styling */
+.gis-grid-pattern {
+  background-image: 
+    linear-gradient(to right, rgba(15, 23, 42, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 23, 42, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.gis-grid-dark {
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* High readability tabular numbers */
+.font-tabular {
+  font-variant-numeric: tabular-nums;
+}
