@@ -38,6 +38,17 @@ DECLARE
     u_public UUID      := 'c5f6a7b8-c9d0-4e1f-2a3b-5c6d7e8f9a0b';
     u_admin UUID       := 'd6a7b8c9-d0e1-4f2a-3b4c-6d7e8f9a0b1c';
 BEGIN
+    -- Ensure clean idempotency by removing any unconfirmed/stale auth rows
+    DELETE FROM auth.users WHERE email IN (
+        'researcher@landscope.in',
+        'policymaker@landscope.in',
+        'academic@landscope.in',
+        'agency@landscope.in',
+        'innovator@landscope.in',
+        'public@landscope.in',
+        'admin@landscope.in'
+    );
+
     -- Researcher
     INSERT INTO auth.users (
         instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at

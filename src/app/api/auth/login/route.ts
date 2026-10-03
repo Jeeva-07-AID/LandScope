@@ -54,6 +54,15 @@ export async function POST(request: Request) {
             maxAge: 7 * 24 * 60 * 60,
           });
         }
+        if (authData?.user?.id) {
+          cookieStore.set("sb_user_id", authData.user.id, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            path: "/",
+            maxAge: 7 * 24 * 60 * 60,
+          });
+        }
       }
     } catch {
       // Continue gracefully with sovereign session token

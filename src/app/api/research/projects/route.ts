@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
         ];
 
     const supabaseClient = getAuthenticatedSupabaseClient(ctx.supabaseAccessToken);
-    const userId = ctx.user.supabaseId || "d0a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b5c";
+    const userId = ctx.supabaseUserId || ctx.user.supabaseId || "d0a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b5c";
 
     let newProject;
     try {
@@ -112,35 +112,31 @@ export async function POST(req: NextRequest) {
           name: ctx.user.name,
         }
       );
-    } catch (dbErr) {
-      console.warn("Falling back to local in-memory store creation:", dbErr);
-      newProject = researchStore.createProject({
-        title: title.trim(),
-        subtitle: subtitle?.trim() || "Empirical land governance and spatial evidence study",
-        description:
-          description?.trim() ||
-          "Investigative project tracking spatial cadastre, tenure formalization, and policy scenario indicators.",
-        status: "Active",
-        leadResearcherId: ctx.user.id,
-        leadResearcherName: ctx.user.name,
-        leadResearcherEmail: ctx.user.email,
-        organization: ctx.user.organization,
-        collaborators: [
-          {
-            name: ctx.user.name,
-            role: "Principal Investigator",
-            email: ctx.user.email,
-            organization: ctx.user.organization,
-          },
-        ],
-        researchQuestions: formattedQuestions.map((q, idx) => ({
-          id: `rq-${Date.now()}-${idx}`,
-          question: q.question,
-          hypothesis: q.hypothesis || "",
-          status: "Investigating" as const,
-        })),
-        analysisNotes: "Initial project workspace established. Ready for dataset integration and spatial cadastre overlay.",
-      });
+      // Synchronize in-memory mirror if present
+      try {
+        researchStore.createProject({
+          title: newProject.title,
+          subtitle: newProject.subtitle,
+          description: newProject.description,
+          status: "Active",
+          leadResearcherId: ctx.user.id,
+          leadResearcherName: ctx.user.name,
+          leadResearcherEmail: ctx.user.email,
+          organization: ctx.user.organization,
+          collaborators: newProject.collaborators,
+          researchQuestions: newProject.researchQuestions,
+          analysisNotes: newProject.analysisNotes,
+        });
+      } catch {
+        // In-memory sync optional
+      }
+    } catch (dbErr: unknown) {
+      const msg = dbErr instanceof Error ? dbErr.message : "Database error";
+      console.error("Supabase project persistence error:", msg);
+      return NextResponse.json(
+        { error: "DATABASE_ERROR", message: `Failed to persist research project: ${msg}` },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json(

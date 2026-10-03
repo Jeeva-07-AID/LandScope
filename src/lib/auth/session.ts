@@ -4,7 +4,6 @@ import {
   UserAccount,
   RoleDefinition,
   RoleCode,
-  RoleSlug,
   PermissionCode,
   ROLES,
   DEMO_USERS,
@@ -86,6 +85,7 @@ export interface AuthenticatedContext {
   user: UserAccount;
   role: RoleDefinition;
   supabaseAccessToken?: string;
+  supabaseUserId?: string;
 }
 
 /**
@@ -108,8 +108,9 @@ export async function getAuthenticatedUser(): Promise<AuthenticatedContext | nul
   if (!role) return null;
 
   const supabaseAccessToken = cookieStore.get("sb_access_token")?.value;
+  const supabaseUserId = cookieStore.get("sb_user_id")?.value;
 
-  return { user, role, supabaseAccessToken };
+  return { user, role, supabaseAccessToken, supabaseUserId };
 }
 
 /**

@@ -340,6 +340,66 @@ export async function createPersistedResearchProject(
 }
 
 /**
+ * Updates an existing research project in public.research_projects.
+ */
+export async function updatePersistedResearchProject(
+  client: SupabaseClient,
+  projectId: string,
+  updates: {
+    title?: string;
+    description?: string;
+    status?: "Draft" | "In Progress" | "Under Review" | "Completed" | "Archived";
+    visibility?: "Private" | "Public" | "Institutional";
+    tags?: string[];
+    state?: string;
+    district?: string;
+    tehsil?: string;
+  }
+): Promise<ResearchProject | null> {
+  const updatePayload: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  };
+  if (updates.title !== undefined) updatePayload.title = updates.title.trim();
+  if (updates.description !== undefined) updatePayload.description = updates.description.trim();
+  if (updates.status !== undefined) updatePayload.status = updates.status;
+  if (updates.visibility !== undefined) updatePayload.visibility = updates.visibility;
+  if (updates.tags !== undefined) updatePayload.tags = updates.tags;
+  if (updates.state !== undefined) updatePayload.state = updates.state;
+  if (updates.district !== undefined) updatePayload.district = updates.district;
+  if (updates.tehsil !== undefined) updatePayload.tehsil = updates.tehsil;
+
+  const { error } = await client
+    .from("research_projects")
+    .update(updatePayload)
+    .eq("id", projectId);
+
+  if (error) {
+    throw new Error(`Failed to update research project: ${error.message}`);
+  }
+
+  return getPersistedResearchProjectById(client, projectId);
+}
+
+/**
+ * Deletes a research project from public.research_projects.
+ */
+export async function deletePersistedResearchProject(
+  client: SupabaseClient,
+  projectId: string
+): Promise<boolean> {
+  const { error } = await client
+    .from("research_projects")
+    .delete()
+    .eq("id", projectId);
+
+  if (error) {
+    throw new Error(`Failed to delete research project: ${error.message}`);
+  }
+
+  return true;
+}
+
+/**
  * Links an evidence item to a research project in public.project_evidence_links.
  */
 export async function linkEvidenceToPersistedProject(
@@ -412,6 +472,10 @@ export async function getPersistedEvidence(
       .from("evidence")
       .select("*")
       .order("created_at", { ascending: false });
+
+    if (error) {
+      console.warn("Notice querying public.evidence from Supabase:", error.message);
+    }
 
     const dbItems: EvidenceItem[] = (dbEvidence || []).map((row) => ({
       id: row.id,
@@ -576,6 +640,111 @@ export async function createPersistedEvidence(
       recommendedInterventions: row.policy_implications,
     },
   };
+}
+
+/**
+ * Retrieves a single evidence item by ID or reference number from Supabase or demo repository.
+ */
+export async function getPersistedEvidenceById(
+  client: SupabaseClient,
+  evidenceId: string
+): Promise<EvidenceItem | null> {
+  const { data: row, error } = await client
+    .from("evidence")
+    .select("*")
+    .or(`id.eq.${evidenceId},reference_number.eq.${evidenceId}`)
+    .maybeSingle();
+
+  if (error || !row) {
+    // Check in demo repository
+    return (
+      INITIAL_EVIDENCE_REPOSITORY.find(
+        (e) => e.id === evidenceId || e.referenceNumber === evidenceId
+      ) || null
+    );
+  }
+
+  return {
+    id: row.id,
+    title: row.title,
+    authorOrOrg: row.source,
+    year: new Date(row.publication_date).getFullYear() || 2026,
+    type: "Research Paper",
+    abstract: row.summary,
+    geography: {
+      state: row.state,
+      district: row.district || undefined,
+      tehsil: row.tehsil || undefined,
+    },
+    topics: row.topics || [],
+    researchDomain: row.research_domain as EvidenceItem["researchDomain"],
+    source: row.source,
+    evidenceStatus: row.peer_review_status === "Peer Reviewed" ? "Peer-Reviewed" : "Empirical Fieldwork",
+    confidenceScore: Number(row.confidence_score) || 0.90,
+    methodology: row.methodology,
+    sampleSize: "Sample Size: Empirical Cadastral Records",
+    referenceNumber: row.reference_number,
+    isDemoRecord: row.is_demo_record ?? false,
+    keyFindings: row.policy_implications || [row.summary],
+    spatialContext: {
+      state: row.state,
+      district: row.district || undefined,
+      tehsil: row.tehsil || undefined,
+    },
+    policyScenarioEligibility: {
+      eligible: true,
+      targetPolicyDomains: [row.research_domain],
+      recommendedInterventions: row.policy_implications || [],
+    },
+  };
+}
+
+/**
+ * Updates an evidence item in Supabase public.evidence.
+ */
+export async function updatePersistedEvidence(
+  client: SupabaseClient,
+  evidenceId: string,
+  updates: Partial<CreateEvidenceInput>
+): Promise<EvidenceItem | null> {
+  const updatePayload: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  };
+
+  if (updates.title !== undefined) updatePayload.title = updates.title.trim();
+  if (updates.abstract !== undefined) updatePayload.summary = updates.abstract.trim();
+  if (updates.source !== undefined) updatePayload.source = updates.source.trim();
+  if (updates.sourceUrl !== undefined) updatePayload.source_url = updates.sourceUrl;
+  if (updates.confidenceScore !== undefined) {
+    updatePayload.confidence_score = updates.confidenceScore;
+    updatePayload.confidence_level =
+      updates.confidenceScore >= 0.85
+        ? "High"
+        : updates.confidenceScore >= 0.70
+        ? "Moderate"
+        : "Preliminary";
+  }
+  if (updates.methodology !== undefined) updatePayload.methodology = updates.methodology.trim();
+  if (updates.state !== undefined) updatePayload.state = updates.state;
+  if (updates.district !== undefined) updatePayload.district = updates.district;
+  if (updates.tehsil !== undefined) updatePayload.tehsil = updates.tehsil;
+  if (updates.topics !== undefined) updatePayload.topics = updates.topics;
+  if (updates.researchDomain !== undefined) updatePayload.research_domain = updates.researchDomain;
+  if (updates.evidenceStatus !== undefined) {
+    updatePayload.peer_review_status =
+      updates.evidenceStatus === "Peer-Reviewed" ? "Peer Reviewed" : "Under Review";
+  }
+
+  const { error } = await client
+    .from("evidence")
+    .update(updatePayload)
+    .eq("id", evidenceId);
+
+  if (error) {
+    throw new Error(`Failed to update evidence in Supabase: ${error.message}`);
+  }
+
+  return getPersistedEvidenceById(client, evidenceId);
 }
 
 function getFilteredDemoProjects(userEmail?: string): ResearchProject[] {

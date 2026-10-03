@@ -47,11 +47,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 
     // 1. Try Supabase persistence
     const supabaseClient = getAuthenticatedSupabaseClient(ctx.supabaseAccessToken);
-    try {
-      await linkEvidenceToPersistedProject(supabaseClient, projectId, evidenceId);
-    } catch (dbErr) {
-      console.warn("Supabase project_evidence_links notice:", dbErr);
-    }
+    const linked = await linkEvidenceToPersistedProject(supabaseClient, projectId, evidenceId);
 
     // 2. Also update in-memory store for instant reactivity and demo projects
     researchStore.addEvidenceToProject(projectId, evidenceId, ctx.user.email);
